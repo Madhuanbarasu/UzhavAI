@@ -14,6 +14,8 @@ No model was trained, fine-tuned or hosted by us.
 
 ## AI assistance used to build the project
 
+**Team-history statement — confirm with the team before submission:** The entries below record reported AI-tool use during development; they are not independently verifiable from the repository.
+
 - **Claude (Anthropic), used through the claude.ai chat interface** — used to draft and iterate on the original MVP (`index.html`, `server.js`), this documentation, the idea-submission deck and the LinkedIn announcement post; and used in a later session to convert the claude.ai-artifact prototype into a standalone Node application (backend `/api/ask`, image validation, safety/handoff logic, tests, README).
 - **Claude Code:** not used.
 - **Other AI coding tools:** none declared. <!-- TEAM: if you used any other AI tool (e.g. Copilot, Cursor, ChatGPT) while building this, add it here before submitting. -->
