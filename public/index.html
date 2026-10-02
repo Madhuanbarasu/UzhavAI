@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>UzhavAI</title>
+<!-- Pure logic lives in lib/logic.js and is unit-tested in tests/logic.test.js —
+     this page only wires that tested logic to the DOM. Run `npm test` to verify. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Hind:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --soil:#241d14; --soil2:#332818; --paper:#f4ecd8; --turmeric:#e5a33b;
+  --leaf:#5c8a4a; --leaf-dk:#436236; --text:#f4ecd8; --muted:#c9bda3;
+  --danger:#c8623f;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){ } }
+*{box-sizing:border-box;}
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+body{margin:0;background:var(--soil);color:var(--text);font-family:'Hind',system-ui,sans-serif;line-height:1.5;}
+h1,h2,h3{font-family:'Fraunces',Georgia,serif;margin:0;}
+.wrap{max-width:760px;margin:0 auto;padding:20px 20px 60px;}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:env(safe-area-inset-top,0px);}
+.brand{display:flex;align-items:baseline;gap:8px;}
+.brand h1{font-size:1.5rem;color:var(--turmeric);}
+.brand span{color:var(--muted);font-size:.85rem;}
+select{background:var(--soil2);color:var(--text);border:1px solid #4a3d28;border-radius:8px;padding:8px 10px;font-family:inherit;font-size:.9rem;}
+.hero{margin-top:28px;}
+.hero h2{font-size:1.9rem;font-weight:500;color:var(--paper);max-width:14ch;}
+.hero p{color:var(--muted);max-width:52ch;margin-top:8px;}
+.ask-card{background:var(--soil2);border-radius:16px;padding:20px;margin-top:20px;border:1px solid #4a3d28;}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+textarea{flex:1;min-width:200px;background:#1c1710;color:var(--text);border:1px solid #4a3d28;border-radius:10px;padding:12px;font-family:inherit;font-size:1rem;resize:vertical;min-height:52px;}
+button{font-family:inherit;font-size:.95rem;border:none;border-radius:10px;padding:12px 16px;cursor:pointer;}
+.btn-mic{background:var(--leaf);color:#fff;width:52px;height:52px;border-radius:50%;font-size:1.3rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.btn-mic.on{background:var(--danger);}
+.btn-primary{background:var(--turmeric);color:#241d14;font-weight:600;}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid #4a3d28;}
+.photo-row{margin-top:10px;font-size:.85rem;color:var(--muted);}
+.photo-row input{color:var(--muted);}
+#thumb{max-height:70px;border-radius:8px;margin-top:8px;display:none;}
+.answer{margin-top:16px;padding:16px;border-radius:12px;background:#1c1710;border-left:4px solid var(--leaf);display:none;}
+.answer.low{border-left-color:var(--danger);}
+.answer.caution{border-left-color:var(--turmeric);}
+.answer p{margin:0 0 8px;}
+.handoff{font-size:.9rem;color:var(--turmeric);margin-top:6px;white-space:pre-line;}
+.tabs{display:flex;gap:8px;margin-top:32px;border-bottom:1px solid #4a3d28;}
+.tab{padding:10px 4px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;background:none;border-radius:0;}
+.tab.active{color:var(--turmeric);border-bottom-color:var(--turmeric);}
+.panel{display:none;padding-top:18px;}
+.panel.active{display:block;}
+table{width:100%;border-collapse:collapse;font-size:.95rem;}
+th,td{text-align:left;padding:9px 6px;border-bottom:1px solid #3a3020;}
+th{color:var(--muted);font-weight:500;font-size:.8rem;}
+.scheme{background:var(--soil2);border-radius:12px;padding:16px;margin-bottom:14px;border:1px solid #4a3d28;}
+.scheme h3{font-size:1.05rem;color:var(--paper);margin-bottom:6px;}
+.scheme p{color:var(--muted);font-size:.92rem;margin:0 0 10px;}
+.scheme .row{gap:8px;}
+.scheme input{flex:1;min-width:140px;background:#1c1710;color:var(--text);border:1px solid #4a3d28;border-radius:8px;padding:9px 10px;font-family:inherit;}
+.scheme .a{margin-top:8px;font-size:.9rem;color:var(--paper);display:none;}
+.note{color:var(--muted);font-size:.85rem;margin:0 0 12px;}
+.disclaimer{background:#2b2214;border:1px solid #6b5326;border-radius:10px;padding:10px 12px;color:var(--turmeric);font-size:.88rem;margin:0 0 16px;}
+.btn-sm{padding:6px 10px;font-size:.8rem;}
+button:disabled{opacity:.55;cursor:not-allowed;}
+.scheme .a .handoff{margin-top:6px;}
+footer{margin-top:40px;padding-top:16px;border-top:1px solid #3a3020;color:var(--muted);font-size:.8rem;}
+.status{font-size:.85rem;color:var(--muted);margin-top:8px;min-height:1.2em;}
+::-webkit-scrollbar{width:8px;height:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><h1>UzhavAI</h1><span id="tagline">Ask in your language</span></div>
+    <select id="lang">
+      <option value="en">English</option>
+      <option value="ta">தமிழ்</option>
+    </select>
+  </header>
+
+  <div class="hero">
+    <h2 id="heroTitle">Ask about your crop, prices, or a scheme</h2>
+    <p id="heroSub">Speak, type, or send a photo of your crop. Answers come back in your language.</p>
+  </div>
+
+  <div class="ask-card">
+    <div class="row">
+      <button class="btn-mic" id="micBtn" title="Speak">🎙️</button>
+      <textarea id="query" placeholder="e.g. My tomato leaves have brown spots. What should I do?"></textarea>
+    </div>
+    <div class="photo-row">
+      <label><span id="photoLabel">📷 Add a crop photo (optional):</span> <input type="file" id="photo" accept="image/*"></label>
+      <div><img id="thumb" alt="Selected crop photo"> <button class="btn-ghost btn-sm" id="removePhoto" style="display:none;"></button></div>
+    </div>
+    <div class="row" style="margin-top:12px;">
+      <button class="btn-primary" id="askBtn">Ask UzhavAI</button>
+      <button class="btn-ghost" id="speakBtn" style="display:none;">🔊 Speak answer</button>
+    </div>
+    <div class="status" id="status"></div>
+    <div class="answer" id="answerBox">
+      <p id="answerText"></p>
+      <div class="handoff" id="handoff" role="alert" style="display:none;"></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="prices" id="tabPrices">Mandi Price Snapshot</button>
+    <button class="tab" data-tab="schemes" id="tabSchemes">Government schemes</button>
+  </div>
+
+  <div class="panel active" id="prices">
+    <h3 id="snapshotTitle" style="font-size:1.1rem;margin-bottom:6px;">Mandi Price Snapshot</h3>
+    <p class="note" id="snapshotNote"></p>
+    <table>
+      <thead><tr><th id="colCrop"></th><th id="colMarket"></th><th id="colPrice"></th></tr></thead>
+      <tbody id="priceRows"></tbody>
+    </table>
+  </div>
+
+  <div class="panel" id="schemes">
+    <div class="disclaimer" id="schemeDisclaimer" role="note"></div>
+    <div id="schemeList"></div>
+  </div>
+
+  <footer id="footerText"></footer>
+</div>
+
+<script src="lib/logic.js"></script>
+<script>
+const { formatPrice, errorMessage, buildContext } = window.UzhavLogic;
+
+const STR = {
+  en: { tagline:"Ask in your language", hero:"Ask about your crop, prices, or a scheme",
+    sub:"Speak, type, or send a photo of your crop. Answers come back in your language.",
+    placeholder:"e.g. My tomato leaves have brown spots. What should I do?",
+    ask:"Ask UzhavAI", speak:"🔊 Speak answer", thinking:"Thinking…",
+    err:"Couldn't reach UzhavAI — try again.",
+    errBusy:"UzhavAI is busy right now — please try again in a moment.",
+    errPermission:"UzhavAI needs your permission to answer — please allow it and try again.",
+    noVoice:"Voice input isn't supported in this browser — please type instead.",
+    errConfig:"UzhavAI isn't set up on the server yet (missing API key) — please tell the administrator.",
+    errImage:"That photo couldn't be used — please try a different JPEG or PNG photo (under 5 MB).",
+    errInvalid:"Please check your question and try again.",
+    handoffDiagnosis:"⚠ Not enough information for a confident diagnosis.\nUzhavAI can suggest possible causes, but do not apply pesticides or chemical treatments based only on this response. For reliable diagnosis, consult an agriculture expert or Kisan Call Centre: 1800-180-1551.",
+    diagnosisTip:"Tip: adding a clear photo of the affected leaf can help.",
+    handoffStakes:"⚠ Expert verification needed before you act.\nThis involves chemicals, doses or money. Do not act on this response alone — confirm with an agriculture expert or Kisan Call Centre: 1800-180-1551.",
+    handoffLow:"⚠ UzhavAI is not confident about this answer, so treat it as general information only.\nBefore acting on it, confirm with an agriculture expert or Kisan Call Centre: 1800-180-1551.",
+    handoffUnverified:"⚠ UzhavAI could not verify how reliable this answer is, so treat it as general information only.\nBefore acting on it, confirm with an agriculture expert or Kisan Call Centre: 1800-180-1551.",
+    micDenied:"Microphone access was blocked — please allow it, or type instead.",
+    micNoSpeech:"Couldn't hear you — please try again, or type instead.",
+    noTamilVoice:"No Tamil voice is installed on this device, so the spoken answer may not work. The written answer is shown above.",
+    photoLabel:"📷 Add a crop photo (optional):", removePhoto:"Remove photo",
+    tabPrices:"Mandi Price Snapshot", tabSchemes:"Government schemes",
+    snapshotTitle:"Mandi Price Snapshot",
+    snapshotNote:"Representative demo values — NOT live and NOT official government data. Check today's price at your local mandi before you sell.",
+    schemeDisclaimer:"Informational guidance only — this is NOT an official eligibility decision. Final eligibility is decided by the government / your local agriculture office.",
+    colCrop:"Crop", colMarket:"Market", colPrice:"₹ / quintal", schemeAsk:"Ask", schemePh:"Ask about eligibility…",
+    footer:"MVP — voice input and speech output run in your browser (Chrome recommended for Tamil). Answers are generated by an AI model and can be wrong; mandi values are a static snapshot and scheme text is a short summary, not official guidance. Always confirm with your local agriculture office. Phone/WhatsApp access is planned, not built." },
+  ta: { tagline:"உங்கள் மொழியில் கேளுங்கள்", hero:"பயிர், விலை அல்லது திட்டம் பற்றி கேளுங்கள்",
+    sub:"பேசுங்கள், தட்டச்சு செய்யுங்கள் அல்லது புகைப்படம் அனுப்புங்கள். பதில் உங்கள் மொழியில் வரும்.",
+    placeholder:"எ.கா. என் தக்காளி இலைகளில் பழுப்பு புள்ளிகள் உள்ளன. என்ன செய்வது?",
+    ask:"கேளுங்கள்", speak:"🔊 பதிலைக் கேளுங்கள்", thinking:"யோசிக்கிறது…",
+    err:"இணைக்க முடியவில்லை — மீண்டும் முயற்சிக்கவும்.",
+    errBusy:"UzhavAI இப்போது பரபரப்பாக உள்ளது — சற்று நேரம் கழித்து முயற்சிக்கவும்.",
+    errPermission:"பதில் அளிக்க அனுமதி தேவை — அனுமதித்து மீண்டும் முயற்சிக்கவும்.",
+    noVoice:"இந்த உலாவியில் குரல் உள்ளீடு இல்லை — தட்டச்சு செய்யவும்.",
+    errConfig:"UzhavAI சேவையகத்தில் இன்னும் அமைக்கப்படவில்லை (API விசை இல்லை) — நிர்வாகியிடம் தெரிவிக்கவும்.",
+    errImage:"இந்தப் புகைப்படத்தைப் பயன்படுத்த முடியவில்லை — வேறு JPEG அல்லது PNG புகைப்படத்தை (5 MB-க்குள்) முயற்சிக்கவும்.",
+    errInvalid:"உங்கள் கேள்வியைச் சரிபார்த்து மீண்டும் முயற்சிக்கவும்.",
+    handoffDiagnosis:"⚠ உறுதியான நோய் கண்டறிதலுக்குப் போதிய தகவல் இல்லை.\nUzhavAI சாத்தியமான காரணங்களைச் சொல்ல முடியும், ஆனால் இந்தப் பதிலை மட்டும் நம்பி பூச்சிக்கொல்லி அல்லது இரசாயன மருந்துகளைப் பயன்படுத்த வேண்டாம். நம்பகமான நோய் கண்டறிதலுக்கு வேளாண் நிபுணரை அல்லது கிசான் அழைப்பு மையத்தை (1800-180-1551) தொடர்பு கொள்ளுங்கள்.",
+    diagnosisTip:"குறிப்பு: பாதிக்கப்பட்ட இலையின் தெளிவான புகைப்படத்தைச் சேர்த்தால் உதவும்.",
+    handoffStakes:"⚠ செயல்படுவதற்கு முன் நிபுணர் உறுதிப்படுத்தல் தேவை.\nஇது இரசாயனம், மருந்தளவு அல்லது பணம் தொடர்புடையது. இந்தப் பதிலை மட்டும் நம்பி செயல்பட வேண்டாம் — வேளாண் நிபுணரிடம் அல்லது கிசான் அழைப்பு மையத்தில் (1800-180-1551) உறுதிப்படுத்துங்கள்.",
+    handoffLow:"⚠ இந்தப் பதிலில் UzhavAI-க்கு உறுதி இல்லை, எனவே இதை பொதுவான தகவலாக மட்டும் கருதுங்கள்.\nசெயல்படுவதற்கு முன் வேளாண் நிபுணரிடம் அல்லது கிசான் அழைப்பு மையத்தில் (1800-180-1551) உறுதிப்படுத்துங்கள்.",
+    handoffUnverified:"⚠ இந்தப் பதில் எவ்வளவு நம்பகமானது என்பதை UzhavAI-ஆல் உறுதிப்படுத்த முடியவில்லை, எனவே இதை பொதுவான தகவலாக மட்டும் கருதுங்கள்.\nசெயல்படுவதற்கு முன் வேளாண் நிபுணரிடம் அல்லது கிசான் அழைப்பு மையத்தில் (1800-180-1551) உறுதிப்படுத்துங்கள்.",
+    micDenied:"மைக்ரோஃபோன் அனுமதி மறுக்கப்பட்டது — அனுமதிக்கவும் அல்லது தட்டச்சு செய்யவும்.",
+    micNoSpeech:"உங்கள் குரல் கேட்கவில்லை — மீண்டும் முயற்சிக்கவும் அல்லது தட்டச்சு செய்யவும்.",
+    noTamilVoice:"இந்தச் சாதனத்தில் தமிழ் குரல் இல்லை, எனவே பேச்சு பதில் செயல்படாமல் போகலாம். எழுத்துப் பதில் மேலே உள்ளது.",
+    photoLabel:"📷 பயிர் புகைப்படம் சேர்க்கவும் (விருப்பம்):", removePhoto:"புகைப்படத்தை நீக்கு",
+    tabPrices:"மண்டி விலை நிலவரம் (மாதிரி)", tabSchemes:"அரசு திட்டங்கள்",
+    snapshotTitle:"மண்டி விலை நிலவரம் (மாதிரி)",
+    snapshotNote:"இவை மாதிரி மதிப்புகள் — நேரடி அல்லது அரசு அதிகாரப்பூர்வ தரவு அல்ல. விற்பதற்கு முன் உங்கள் உள்ளூர் மண்டியில் இன்றைய விலையைச் சரிபார்க்கவும்.",
+    schemeDisclaimer:"தகவல் வழிகாட்டுதல் மட்டுமே — இது அதிகாரப்பூர்வ தகுதி முடிவு அல்ல. இறுதித் தகுதியை அரசு / உங்கள் உள்ளூர் வேளாண் அலுவலகம் தீர்மானிக்கும்.",
+    colCrop:"பயிர்", colMarket:"சந்தை", colPrice:"₹ / குவிண்டால்", schemeAsk:"கேள்", schemePh:"தகுதி பற்றி கேளுங்கள்…",
+    footer:"MVP — குரல் உள்ளீடும் பேச்சு வெளியீடும் உங்கள் உலாவியில் இயங்குகின்றன (தமிழுக்கு Chrome பரிந்துரைக்கப்படுகிறது). பதில்கள் AI மாடல் மூலம் உருவாக்கப்படுகின்றன; தவறாக இருக்கலாம். மண்டி மதிப்புகள் நிலையான மாதிரி; திட்ட விவரங்கள் சுருக்கம் மட்டுமே, அதிகாரப்பூர்வ வழிகாட்டுதல் அல்ல. எப்போதும் உங்கள் உள்ளூர் வேளாண் அலுவலகத்தில் உறுதிப்படுத்துங்கள். தொலைபேசி/WhatsApp வசதி திட்டத்தில் மட்டுமே உள்ளது." }
+};
+
+const PRICES = [
+  {crop:{en:"Tomato",ta:"தக்காளி"}, market:"Koyambedu, Chennai", price:1850},
+  {crop:{en:"Onion",ta:"வெங்காயம்"}, market:"Koyambedu, Chennai", price:2100},
+  {crop:{en:"Paddy (Rice)",ta:"நெல்"}, market:"Thanjavur", price:2203},
+  {crop:{en:"Brinjal",ta:"கத்தரிக்காய்"}, market:"Coimbatore", price:1600},
+  {crop:{en:"Banana",ta:"வாழைப்பழம்"}, market:"Theni", price:1400},
+];
+
+const SCHEMES = {
+  en: [
+    {name:"PM-KISAN", body:"₹6,000/year direct income support for eligible landholding farmer families, paid in three instalments.",
+     ctx:"PM-KISAN gives eligible small/marginal landholding farmer families ₹6,000 per year in three ₹2,000 instalments, direct to bank account. Excludes institutional landholders and some high-income categories."},
+    {name:"PMFBY (Crop Insurance)", body:"Low-premium insurance against crop loss from drought, flood, pests, and other natural risks.",
+     ctx:"Pradhan Mantri Fasal Bima Yojana (PMFBY): farmers pay a small premium (around 1.5-2% for food crops), and are compensated for yield loss from natural calamities, pests, and disease. Enrol through banks or Common Service Centres before the crop season's cut-off date."},
+    {name:"Soil Health Card", body:"Free soil testing every 2 years with fertiliser recommendations for your specific field.",
+     ctx:"Soil Health Card scheme: government tests farmers' soil samples free of cost roughly every 2 years and issues a card with nutrient status and fertiliser/amendment recommendations specific to the field and crop."},
+  ],
+  ta: [
+    {name:"PM-KISAN", body:"தகுதியான விவசாய குடும்பங்களுக்கு ஆண்டுக்கு ₹6,000 நேரடி உதவி, மூன்று தவணைகளாக.",
+     ctx:"PM-KISAN: தகுதியான சிறு/குறு நில விவசாய குடும்பங்களுக்கு ஆண்டுக்கு ₹6,000 (மூன்று ₹2,000 தவணைகள்) நேரடியாக வங்கிக் கணக்கில் வரும். நிறுவன நிலவுடைமையாளர்கள் விலக்கப்படுவர்."},
+    {name:"PMFBY (பயிர் காப்பீடு)", body:"வறட்சி, வெள்ளம், பூச்சி தாக்குதலால் பயிர் இழப்புக்கு குறைந்த பிரீமியத்தில் காப்பீடு.",
+     ctx:"PMFBY: விவசாயிகள் சிறிய பிரீமியம் (உணவுப் பயிர்களுக்கு சுமார் 1.5-2%) செலுத்தி, இயற்கை பேரிடர்/பூச்சி/நோய் காரணமாக விளைச்சல் இழப்புக்கு நஷ்டஈடு பெறலாம். வங்கி அல்லது CSC மூலம் பருவகால கடைசி தேதிக்கு முன் பதிவு செய்யவும்."},
+    {name:"மண் ஆரோக்கிய அட்டை", body:"2 ஆண்டுக்கு ஒருமுறை இலவச மண் பரிசோதனை மற்றும் உரப் பரிந்துரை.",
+     ctx:"மண் ஆரோக்கிய அட்டை திட்டம்: அரசு இலவசமாக 2 ஆண்டுக்கு ஒருமுறை மண் மாதிரிகளை பரிசோதித்து, அந்த நிலம்/பயிருக்கான ஊட்டச்சத்து நிலை மற்றும் உர பரிந்துரையுடன் அட்டை வழங்கும்."},
+  ]
+};
+
+let lang = "en";
+const $ = id => document.getElementById(id);
+
+function applyLang(){
+  const s = STR[lang];
+  $("tagline").textContent = s.tagline;
+  $("heroTitle").textContent = s.hero;
+  $("heroSub").textContent = s.sub;
+  $("query").placeholder = s.placeholder;
+  $("askBtn").textContent = s.ask;
+  $("speakBtn").textContent = s.speak;
+  $("photoLabel").textContent = s.photoLabel;
+  $("removePhoto").textContent = s.removePhoto;
+  $("tabPrices").textContent = s.tabPrices;
+  $("tabSchemes").textContent = s.tabSchemes;
+  $("snapshotTitle").textContent = s.snapshotTitle;
+  $("snapshotNote").textContent = s.snapshotNote;
+  $("schemeDisclaimer").textContent = s.schemeDisclaimer;
+  $("footerText").textContent = s.footer;
+  document.documentElement.lang = lang;
+  renderPrices(); renderSchemes();
+  if (lastResult) showHandoff($("handoff"), lastResult);
+}
+$("lang").addEventListener("change", e => { lang = e.target.value; applyLang(); });
+
+function renderPrices(){
+  $("colCrop").textContent = STR[lang].colCrop; $("colMarket").textContent = STR[lang].colMarket; $("colPrice").textContent = STR[lang].colPrice;
+  $("priceRows").innerHTML = PRICES.map(r =>
+    `<tr><td>${r.crop[lang]}</td><td>${r.market}</td><td>${formatPrice(r.price)}</td></tr>`
+  ).join("");
+}
+
+function renderSchemes(){
+  $("schemeList").innerHTML = SCHEMES[lang].map((s,i) => `
+    <div class="scheme">
+      <h3>${s.name}</h3>
+      <p>${s.body}</p>
+      <div class="row">
+        <input placeholder="${STR[lang].schemePh}" data-idx="${i}" class="schemeQ">
+        <button class="btn-ghost schemeAsk" data-idx="${i}">${STR[lang].schemeAsk}</button>
+      </div>
+      <div class="a" id="schemeA${i}"></div>
+    </div>`).join("");
+  document.querySelectorAll(".schemeAsk").forEach(btn => btn.addEventListener("click", async () => {
+    const i = btn.dataset.idx;
+    const q = document.querySelector(`.schemeQ[data-idx="${i}"]`).value.trim();
+    const box = $("schemeA"+i);
+    if(!q || btn.disabled) return;
+    btn.disabled = true;
+    box.style.display="block"; box.textContent = STR[lang].thinking;
+    try{
+      // Grounded ONLY on this scheme's note; the backend enforces that (mode:"scheme").
+      const r = await askServer({ prompt:q, lang, mode:"scheme", context:SCHEMES[lang][i].ctx });
+      box.textContent = r.answer;
+      const h = document.createElement("div"); h.className = "handoff";
+      if (r.needsExpert) { h.textContent = handoffText(r); box.appendChild(h); }
+    }catch(e){ box.textContent = errorMessage(STR, lang, e && e.code); }
+    finally{ btn.disabled = false; }
+  }));
+}
+
+// --- Backend call: the ONLY place the page talks to an AI. The API key lives
+// on the server only; the browser just posts to /api/ask.
+async function askServer({ prompt, imageDataUrl, lang, context, mode }){
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 60000);
+  let resp;
+  try{
+    resp = await fetch("/api/ask", {
+      method:"POST", headers:{ "Content-Type":"application/json" }, signal: ctrl.signal,
+      body: JSON.stringify({ prompt, imageBase64: imageDataUrl || undefined, lang, context, mode }),
+    });
+  }catch(e){ const err = new Error("network"); err.code = "network_error"; throw err; }
+  finally{ clearTimeout(timer); }
+  let data = null;
+  try{ data = await resp.json(); }catch(e){ /* non-JSON error page */ }
+  if(!resp.ok || !data || typeof data.answer !== "string"){
+    const err = new Error("ask failed"); err.code = (data && data.error) || "server_error"; throw err;
+  }
+  return data;
+}
+
+// Which safety message applies, by risk category (the server decides WHETHER
+// one is needed; this only picks the wording):
+//   chemicals / doses / money      -> expert verification before acting
+//   unreadable / unverifiable      -> general information only
+//   crop problem without a photo   -> "possible causes", no confident diagnosis
+//   anything else uncertain        -> general information only
+function handoffText(r){
+  const s = STR[lang];
+  if (r.highStakes) return s.handoffStakes;
+  if (r.reason === "unverified") return s.handoffUnverified;
+  if (r.reason === "needs_more_info" || r.diagnosis) return s.handoffDiagnosis + (r.usedImage ? "" : "\n" + s.diagnosisTip);
+  return s.handoffLow;
+}
+function showHandoff(el, r){
+  el.textContent = r && r.needsExpert ? handoffText(r) : "";
+  el.style.display = r && r.needsExpert ? "block" : "none";
+}
+
+// --- Photo: downscale in the browser to a JPEG (phone photos are often >5 MB,
+// the API's per-image limit) before sending it to the backend.
+let photoData = null;
+function fileToJpegDataUrl(file, maxDim = 1280){
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.max(1, Math.round(img.width * scale)); c.height = Math.max(1, Math.round(img.height * scale));
+      const ctx = c.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      resolve(c.toDataURL("image/jpeg", 0.85));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("bad image")); };
+    img.src = url;
+  });
+}
+function clearPhoto(){ photoData = null; $("photo").value = ""; $("thumb").style.display = "none"; $("removePhoto").style.display = "none"; }
+$("photo").addEventListener("change", async e => {
+  const f = e.target.files[0]; if(!f) return;
+  try{
+    photoData = await fileToJpegDataUrl(f);
+    $("thumb").src = photoData; $("thumb").style.display = "block"; $("removePhoto").style.display = "inline-block";
+    $("status").textContent = "";
+  }catch(err){ clearPhoto(); $("status").textContent = STR[lang].errImage; }
+});
+$("removePhoto").addEventListener("click", clearPhoto);
+
+// --- Voice input (browser Web Speech API)
+let recog = null, listening = false;
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if(SR){
+  recog = new SR();
+  recog.interimResults = false;
+  recog.onresult = e => { $("query").value = e.results[0][0].transcript; };
+  recog.onerror = e => {
+    const code = e && e.error;
+    if (code === "not-allowed" || code === "service-not-allowed") $("status").textContent = STR[lang].micDenied;
+    else if (code === "no-speech" || code === "audio-capture") $("status").textContent = STR[lang].micNoSpeech;
+    else if (code !== "aborted") $("status").textContent = STR[lang].noVoice;
+  };
+  recog.onend = () => { listening=false; $("micBtn").classList.remove("on"); };
+}
+$("micBtn").addEventListener("click", () => {
+  if(!recog){ $("status").textContent = STR[lang].noVoice; return; }
+  recog.lang = lang==='ta' ? 'ta-IN' : 'en-IN';
+  if(listening){ recog.stop(); return; }
+  $("status").textContent = "";
+  try{ listening = true; $("micBtn").classList.add("on"); recog.start(); }
+  catch(e){ listening = false; $("micBtn").classList.remove("on"); }
+});
+
+// --- Ask flow
+let lastAnswer = "", lastResult = null;
+$("askBtn").addEventListener("click", async () => {
+  const q = $("query").value.trim();
+  if(!q && !photoData) return;
+  if($("askBtn").disabled) return;
+  const s = STR[lang];
+  $("askBtn").disabled = true;
+  $("status").textContent = s.thinking;
+  $("answerBox").style.display = "none";
+  $("speakBtn").style.display = "none";
+  lastResult = null;
+  try{
+    const r = await askServer({
+      prompt: q, imageDataUrl: photoData, lang, mode: "general",
+      context: buildContext(PRICES, SCHEMES.en),
+    });
+    lastAnswer = r.answer; lastResult = r;
+    $("answerText").textContent = r.answer;
+    $("answerBox").classList.toggle("low", !!(r.needsExpert && (r.highStakes || r.reason === "unverified")));
+    $("answerBox").classList.toggle("caution", !!(r.needsExpert && !(r.highStakes || r.reason === "unverified")));
+    showHandoff($("handoff"), r);
+    $("answerBox").style.display = "block";
+    $("speakBtn").style.display = "inline-block";
+    $("status").textContent = "";
+  }catch(e){
+    $("status").textContent = errorMessage(STR, lang, e && e.code);
+  }finally{
+    $("askBtn").disabled = false;
+  }
+});
+
+// --- Voice output (browser speechSynthesis)
+$("speakBtn").addEventListener("click", () => {
+  if (!lastAnswer || !window.speechSynthesis) {
+    $("status").textContent = STR[lang].noVoice;
+    return;
+  }
+
+  const voices = speechSynthesis.getVoices();
+
+  // Tamil: explicitly select a Tamil voice
+  if (lang === "ta") {
+    const tamilVoice = voices.find(
+      v => v.lang && v.lang.toLowerCase().startsWith("ta")
+    );
+
+    if (!tamilVoice) {
+      $("status").textContent = STR[lang].noTamilVoice;
+      return;
+    }
+
+    const u = new SpeechSynthesisUtterance(lastAnswer);
+    u.lang = tamilVoice.lang;
+    u.voice = tamilVoice;
+
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+    return;
+  }
+
+  // English: keep existing working behavior
+  const u = new SpeechSynthesisUtterance(lastAnswer);
+  u.lang = "en-IN";
+
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+});
+
+// Tabs
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+  document.querySelectorAll(".panel").forEach(x=>x.classList.remove("active"));
+  t.classList.add("active"); $(t.dataset.tab).classList.add("active");
+}));
+
+applyLang();
+</script>
+</body>
+</html>

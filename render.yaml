@@ -1,0 +1,18 @@
+# Render Blueprint — one-click deploy of the Node web service.
+# The API key is NOT stored here: you paste it in the Render dashboard
+# (sync: false means "ask the human, never commit it").
+services:
+  - type: web
+    name: uzhavai
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: GEMINI_API_KEY      # free key from https://aistudio.google.com/apikey
+        sync: false
+      # - key: ANTHROPIC_API_KEY # alternative paid provider
+      #   sync: false
+      - key: NODE_VERSION
+        value: "22"
